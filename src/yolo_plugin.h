@@ -6,7 +6,9 @@ class LogosAPI;
 
 class YoloPlugin : public QObject, public YoloInterface {
     Q_OBJECT
+    #ifndef YOLO_UI_BUILD
     Q_PLUGIN_METADATA(IID YoloInterface_iid FILE "metadata.json")
+#endif
     Q_INTERFACES(YoloInterface PluginInterface)
 public:
     explicit YoloPlugin(QObject *parent = nullptr);

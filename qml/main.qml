@@ -5,8 +5,8 @@ import QtQuick.Layouts 1.15
 Item {
     id: root
     property var posts: []
-    property string currentPrefix: 
-    property string statusMsg: 
+    property string currentPrefix: "" 
+    property string statusMsg: "" 
 
     Rectangle { anchors.fill: parent; color: "#171717" }
 
@@ -21,7 +21,7 @@ Item {
 
             RowLayout {
                 id: boardRow
-                anchors { fill: parent; margins: 12 }; spacing: 8
+                anchors { fill: parent; margins: 12 } spacing: 8
                 TextField {
                     id: prefixField; Layout.fillWidth: true
                     placeholderText: "Board prefix"; color: "#FFF"; font.family: "monospace"
@@ -55,7 +55,7 @@ Item {
             color: "#1C1C1C"; border.color: "#2B303B"; border.width: 1
             visible: currentPrefix.length > 0
             ColumnLayout {
-                id: postCol; anchors { fill: parent; margins: 12 }; spacing: 8
+                id: postCol; anchors { fill: parent; margins: 12 } spacing: 8
                 TextField { id: titleField; Layout.fillWidth: true; placeholderText: "Title"; color: "#FFF"; font.family: "monospace"
                     background: Rectangle { color: "#262626"; border.color: "#2B303B"; border.width: 1; radius: 4 } }
                 TextArea { id: contentField; Layout.fillWidth: true; Layout.minimumHeight: 60; placeholderText: "Speak your mind..."; color: "#FFF"; font.family: "monospace"; wrapMode: TextEdit.Wrap
@@ -81,7 +81,7 @@ Item {
             delegate: Rectangle {
                 width: ListView.view.width; height: dc.implicitHeight + 20; radius: 8
                 color: "#1C1C1C"; border.color: "#2B303B"; border.width: 1
-                Column { id: dc; anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }; spacing: 4
+                Column { id: dc; anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 } spacing: 4
                     Text { text: modelData.title || ""; color: "#FFF"; font.bold: true; font.pixelSize: 14; font.family: "monospace" }
                     Text { text: modelData.content || ""; color: "#CCC"; font.pixelSize: 13; font.family: "monospace"; wrapMode: Text.Wrap; width: parent.width }
                     Text { text: (modelData.author || "").substring(0,8) + "..."; color: "#FF8800"; font.pixelSize: 11; font.family: "monospace" }

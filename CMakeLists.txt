@@ -9,8 +9,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 # ── Logos SDK (optional, for LOGOS_CORE_AVAILABLE builds) ────────────────────
-set(LOGOS_CPP_SDK_ROOT "" CACHE PATH "Path to logos-cpp-sdk")
-set(LOGOS_LIBLOGOS_ROOT "" CACHE PATH "Path to logos-liblogos")
+set(LOGOS_CPP_SDK_ROOT "$ENV{LOGOS_CPP_SDK_ROOT}" CACHE PATH "Path to logos-cpp-sdk")
+set(LOGOS_LIBLOGOS_ROOT "$ENV{LOGOS_LIBLOGOS_ROOT}" CACHE PATH "Path to logos-liblogos")
 
 if(NOT "${LOGOS_CPP_SDK_ROOT}" STREQUAL "" AND NOT "${LOGOS_LIBLOGOS_ROOT}" STREQUAL "")
     set(LOGOS_CORE_AVAILABLE ON)
@@ -58,6 +58,7 @@ if(BUILD_UI_PLUGIN)
 
     add_library(yolo_ui SHARED
         src/yolo_ui_component.cpp
+        src/yolo_plugin.cpp
         src/yolo_board.cpp
         qml/qml.qrc
     )

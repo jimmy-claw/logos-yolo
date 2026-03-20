@@ -1,9 +1,5 @@
 #include "yolo_board.h"
-
-#ifdef LOGOS_CORE_AVAILABLE
 #include <logos_api_client.h>
-#endif
-
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -13,11 +9,10 @@
 
 YoloBoard::YoloBoard(QObject *parent) : QObject(parent) {}
 
-#ifdef LOGOS_CORE_AVAILABLE
-void YoloBoard::setSyncClient(LogosAPIClient *client) {
-    m_sync = client;
+void YoloBoard::initWithClient(LogosAPIClient* client) {
+    m_client = client;
+    qDebug() << "YoloBoard: sync_module client:" << (client ? "connected" : "null");
 }
-#endif
 
 QString YoloBoard::makeBoardPrefix(const QString &creatorPubkey) {
     return QStringLiteral("YOLO:%1:%2")
@@ -31,13 +26,13 @@ QString YoloBoard::createBoard(const QString &name, const QString &creatorPubkey
     result["success"] = true;
     result["prefix"] = prefix;
     result["name"] = name;
+    m_currentPrefix = prefix;
 
-#ifdef LOGOS_CORE_AVAILABLE
-    if (m_sync) {
-        m_sync->invokeRemoteMethod("sync_module", "federatedAddAdmin", prefix, creatorPubkey);
+    if (m_client) {
+        m_client->invokeRemoteMethod("sync_module", "federatedAddAdmin", prefix, creatorPubkey);
+        qDebug() << "YoloBoard: registered board on sync_module:" << prefix;
     }
-#endif
-
+    emit boardCreated(prefix);
     return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
 }
 
@@ -49,74 +44,56 @@ QString YoloBoard::postOpinion(const QString &prefix, const QString &authorPubke
     post["title"] = title;
     post["content"] = content;
     post["timestamp"] = QDateTime::currentSecsSinceEpoch();
-
     const QByteArray data = QJsonDocument(post).toJson(QJsonDocument::Compact);
 
     QJsonObject result;
-
-#ifdef LOGOS_CORE_AVAILABLE
-    if (m_sync) {
-        const QVariant id = m_sync->invokeRemoteMethod("sync_module", "federatedInscribe",
+    if (m_client) {
+        const QVariant id = m_client->invokeRemoteMethod("sync_module", "federatedInscribe",
                                                         prefix, QString::fromUtf8(data.toHex()));
         result["success"] = true;
         result["inscriptionId"] = id.toString();
+        qDebug() << "YoloBoard: posted, id:" << id.toString();
     } else {
-        result["success"] = false;
-        result["error"] = "sync_module not available";
+        m_allPosts[prefix].append(QString::fromUtf8(data));
+        result["success"] = true;
+        result["inscriptionId"] = post["id"].toString();
+        result["stub"] = true;
     }
-#else
-    m_posts[prefix].append(QString::fromUtf8(data));
-    result["success"] = true;
-    result["inscriptionId"] = post["id"].toString();
-#endif
-
     return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
 }
 
 QString YoloBoard::getPosts(const QString &prefix) {
     QJsonObject result;
-
-#ifdef LOGOS_CORE_AVAILABLE
-    if (m_sync) {
-        const QVariant raw = m_sync->invokeRemoteMethod("sync_module", "federatedGetHistory",
+    if (m_client) {
+        const QVariant raw = m_client->invokeRemoteMethod("sync_module", "federatedGetHistory",
                                                          prefix, QString(), QString("50"));
-        result["success"] = true;
-        // Parse inscriptions -> posts
         QJsonArray posts;
         const QJsonDocument doc = QJsonDocument::fromJson(raw.toString().toUtf8());
         if (doc.isObject()) {
-            const QJsonArray inscriptions = doc.object()["inscriptions"].toArray();
-            for (const QJsonValue &insc : inscriptions) {
+            for (const QJsonValue &insc : doc.object()["inscriptions"].toArray()) {
                 const QByteArray hex = QByteArray::fromHex(
                     insc.toObject()["data"].toString().toLatin1());
                 const QJsonDocument pd = QJsonDocument::fromJson(hex);
                 if (pd.isObject()) posts.append(pd.object());
             }
         }
+        result["success"] = true;
         result["posts"] = posts;
     } else {
-        result["success"] = false;
-        result["posts"] = QJsonArray();
+        QJsonArray posts;
+        for (const QString &raw : m_allPosts.value(prefix)) {
+            const QJsonDocument pd = QJsonDocument::fromJson(raw.toUtf8());
+            if (pd.isObject()) posts.append(pd.object());
+        }
+        result["success"] = true;
+        result["posts"] = posts;
     }
-#else
-    QJsonArray posts;
-    for (const QString &raw : m_posts.value(prefix)) {
-        const QJsonDocument pd = QJsonDocument::fromJson(raw.toUtf8());
-        if (pd.isObject()) posts.append(pd.object());
-    }
-    result["success"] = true;
-    result["posts"] = posts;
-#endif
-
+    emit postsLoaded();
     return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
 }
 
 void YoloBoard::followBoard(const QString &prefix) {
-#ifdef LOGOS_CORE_AVAILABLE
-    if (m_sync) {
-        m_sync->invokeRemoteMethod("sync_module", "federatedFollow", prefix);
+    if (m_client) {
+        m_client->invokeRemoteMethod("sync_module", "federatedFollow", prefix);
     }
-#else
-    Q_UNUSED(prefix)
-#endif
 }

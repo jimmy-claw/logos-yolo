@@ -14,7 +14,7 @@ void YoloPlugin::initLogos(LogosAPI *api) {
     if (!api) { qWarning() << "YoloPlugin: null LogosAPI"; return; }
 #ifdef LOGOS_CORE_AVAILABLE
     auto *syncClient = api->getClient("sync_module");
-    m_board->setSyncClient(syncClient);
+    m_board->initWithClient(syncClient);
 #endif
     qInfo() << "YoloPlugin: initialized v" << version();
     emit eventResponse("initialized", QVariantList() << "yolo" << version());
