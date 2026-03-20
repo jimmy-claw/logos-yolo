@@ -17,7 +17,10 @@ public:
     Q_INVOKABLE QString postOpinion(const QString &prefix, const QString &authorPubkey, const QString &title, const QString &content) override;
     Q_INVOKABLE QString getPosts(const QString &prefix) override;
     Q_INVOKABLE void followBoard(const QString &prefix) override;
+signals:
+    void eventResponse(const QString &eventName, const QVariantList &args);
 private:
     YoloBoard *m_board = nullptr;
     LogosAPI *m_logosAPI = nullptr;
 };
+
