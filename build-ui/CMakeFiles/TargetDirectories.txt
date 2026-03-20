@@ -1,5 +1,0 @@
-/home/jimmy/logos-yolo-module/build-ui/CMakeFiles/yolo_ui.dir
-/home/jimmy/logos-yolo-module/build-ui/CMakeFiles/edit_cache.dir
-/home/jimmy/logos-yolo-module/build-ui/CMakeFiles/rebuild_cache.dir
-/home/jimmy/logos-yolo-module/build-ui/CMakeFiles/yolo_ui_autogen_timestamp_deps.dir
-/home/jimmy/logos-yolo-module/build-ui/CMakeFiles/yolo_ui_autogen.dir

@@ -1,19 +1,14 @@
 {
-  "name": "yolo",
-  "version": "0.1.0",
-  "type": "ui",
-  "category": "social",
   "author": "Jimmy Claw",
-  "description": "YOLO - Your Own Local Opinion",
+  "category": "misc",
   "dependencies": [],
+  "description": "YOLO - Your Own Local Opinion",
+  "icon": ":/icons/yolo.png",
   "main": {
-    "linux-x86_64": "yolo.so",
-    "linux-amd64": "yolo.so",
-    "linux-x86_64-dev": "yolo.so",
-    "linux-amd64-dev": "yolo.so",
-    "linux-aarch64": "yolo.so",
-    "darwin-arm64": "yolo.dylib"
+    "linux-amd64-dev": "yolo.so"
   },
   "manifestVersion": "0.1.0",
-  "icon": ":/icons/yolo.png"
+  "name": "yolo",
+  "type": "ui",
+  "version": "1.0.0"
 }
