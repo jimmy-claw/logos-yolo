@@ -2,4 +2,7 @@
     <qresource prefix="/yolo">
         <file>main.qml</file>
     </qresource>
+    <qresource prefix="/icons">
+        <file>yolo.png</file>
+    </qresource>
 </RCC>
