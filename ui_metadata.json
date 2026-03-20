@@ -5,10 +5,11 @@
   "description": "YOLO - Your Own Local Opinion",
   "icon": ":/icons/yolo.png",
   "main": {
-    "linux-amd64-dev": "yolo.so"
+    "linux-amd64": "yolo_ui.so",
+    "linux-amd64-dev": "yolo_ui.so"
   },
   "manifestVersion": "0.1.0",
-  "name": "yolo",
+  "name": "yolo_ui",
   "type": "ui",
   "version": "1.0.0"
 }
