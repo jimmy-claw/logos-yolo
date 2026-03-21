@@ -63,11 +63,12 @@
             cmakeFlags = commonCmakeFlags ++ [
               "-DBUILD_UI_PLUGIN=OFF"
               "-DBUILD_TESTS=OFF"
+              "-GNinja"
             ];
 
             buildPhase = ''
               runHook preBuild
-              cmake --build . --target yolo_plugin -j''${NIX_BUILD_CORES:-1}
+              ninja yolo_plugin -j${NIX_BUILD_CORES:-1}
               runHook postBuild
             '';
 
