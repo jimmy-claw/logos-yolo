@@ -23,8 +23,6 @@ void Yolo::initLogos(LogosAPI *logosAPIInstance) {
 #ifdef LOGOS_CORE_AVAILABLE
     Q_UNUSED(logosAPIInstance)
     qDebug() << "Yolo: initLogos called";
-    // TODO: Extract blockchain/storage/kv clients from LogosAPI
-    // and wire them to YoloBoard via setBlockchainClient(), etc.
 #else
     Q_UNUSED(logosAPIInstance)
 #endif
