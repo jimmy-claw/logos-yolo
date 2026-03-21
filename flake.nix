@@ -3,7 +3,7 @@
 
   inputs = {
     logos-module-builder.url = "github:logos-co/logos-module-builder";
-    nixpkgs.follows = "logos-module-builder/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
     logos-cpp-sdk = {
       url = "github:logos-co/logos-cpp-sdk";
       inputs.nixpkgs.follows = "nixpkgs";
