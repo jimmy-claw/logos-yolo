@@ -138,6 +138,7 @@
 
             # Metadata
             cp ${./metadata.json} $out/yolo/metadata.json
+            cp ${./manifest.json} $out/yolo/manifest.json
             cp ${./ui_metadata.json} $out/yolo/ui_metadata.json
 
             # Create the .lgx archive (tar.gz with .lgx extension)
