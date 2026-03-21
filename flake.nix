@@ -43,6 +43,45 @@
             "-DLOGOS_PIPE_ROOT=${logos-pipe-src}"
           ];
 
+          # Headless plugin built with LOGOS_PIPE_ROOT so YOLO_HAS_BOARD is enabled
+          headless-plugin = pkgs.stdenv.mkDerivation {
+            pname = "yolo-plugin";
+            version = "0.1.0";
+            src = ./.;
+
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.ninja
+              pkgs.pkg-config
+            ];
+
+            buildInputs = [
+              pkgs.qt6.qtbase
+              pkgs.qt6.qtremoteobjects
+            ];
+
+            cmakeFlags = commonCmakeFlags ++ [
+              "-DBUILD_UI_PLUGIN=OFF"
+              "-DBUILD_TESTS=OFF"
+            ];
+
+            buildPhase = ''
+              runHook preBuild
+              cmake --build . --target yolo_plugin -j''${NIX_BUILD_CORES:-1}
+              runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/lib
+              cp libyolo_plugin${pkgs.stdenv.hostPlatform.extensions.sharedLibrary} $out/lib/ 2>/dev/null || \
+              cp yolo_plugin${pkgs.stdenv.hostPlatform.extensions.sharedLibrary} $out/lib/ 2>/dev/null || true
+              runHook postInstall
+            '';
+
+            dontWrapQtApps = true;
+          };
+
           ui-plugin = pkgs.stdenv.mkDerivation {
             pname = "yolo-ui-plugin";
             version = "0.1.0";
@@ -79,21 +118,14 @@
             '';
 
             dontWrapQtApps = true;
-
-            meta = with pkgs.lib; {
-              description = "YOLO UI plugin (IComponent) for logos-app";
-              platforms = platforms.unix;
-            };
           };
 
-          # .lgx bundle: metadata + headless plugin + UI plugin + QML
+          # .lgx bundle: metadata + headless plugin (with board support) + UI plugin + QML
           lgx = pkgs.runCommand "yolo.lgx" {} ''
             mkdir -p $out/yolo
 
-            # Headless module plugin
-            if [ -d "${base.default or base.lib}/lib" ]; then
-              cp ${base.default or base.lib}/lib/yolo_plugin* $out/yolo/ 2>/dev/null || true
-            fi
+            # Headless module plugin (built with LOGOS_PIPE_ROOT -> YOLO_HAS_BOARD)
+            cp ${headless-plugin}/lib/yolo_plugin* $out/yolo/ 2>/dev/null || true
 
             # UI plugin
             cp ${ui-plugin}/lib/libyolo_ui* $out/yolo/ 2>/dev/null || true
@@ -117,7 +149,7 @@
             mkdir -p $out/qml
             cp -r ${./qml}/* $out/qml/
           '';
-          inherit ui-plugin lgx;
+          inherit headless-plugin ui-plugin lgx;
         }
       );
     };
