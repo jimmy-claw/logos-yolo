@@ -14,6 +14,6 @@
     "darwin-arm64": "yolo_plugin.dylib",
     "windows-x86_64": "yolo_plugin.dll"
   },
-  "dependencies": [],
+  "dependencies": ["blockchain_module", "kv_module"],
   "capabilities": []
 }
