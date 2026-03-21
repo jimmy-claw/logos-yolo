@@ -5,17 +5,10 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-class LogosAPI;  // Forward declaration
-class YoloBoard; // Forward declaration
+class LogosAPI;
+class LogosAPIClient;
+class YoloBoard;
 
-/**
- * Yolo — YOLO community board logic for Logos UI plugin.
- *
- * Owns YoloBoard instances and forwards their eventResponse signals
- * so that YoloPlugin can route them to Logos Core for UI/CLI display.
- *
- * Exposes board operations to QML: discovery, selection, posting, events.
- */
 class Yolo : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString currentBoard READ currentBoard NOTIFY currentBoardChanged)
@@ -28,15 +21,17 @@ public:
     Q_INVOKABLE QString hello() const;
     void initLogos(LogosAPI *logosAPIInstance);
 
-    // Connect an external YoloBoard's eventResponse to this module's eventResponse.
+    // Client wiring — called from YoloPlugin::initLogos()
+    void setBlockchainClient(LogosAPIClient* client);
+    void setKvClient(LogosAPIClient* client);
+    void setStorageClient(LogosAPIClient* client);
+
     void watchBoard(YoloBoard *board);
 
-    // Properties
     QString currentBoard() const;
     bool hasBoardSelected() const;
     QString errorMessage() const;
 
-    // QML-invokable board operations
     Q_INVOKABLE QVariantList discoverBoards();
     Q_INVOKABLE void selectBoard(const QString& boardName);
     Q_INVOKABLE void createNewBoard(const QString& name, const QString& description);
@@ -59,6 +54,9 @@ private:
 
 #ifdef YOLO_HAS_BOARD
     YoloBoard* m_board = nullptr;
+    LogosAPIClient* m_blockchain = nullptr;
+    LogosAPIClient* m_kv = nullptr;
+    LogosAPIClient* m_storage = nullptr;
 #endif
     QString m_currentBoard;
     QString m_errorMessage;

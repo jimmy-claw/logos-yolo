@@ -75,6 +75,10 @@ void Yolo::ensureBoard() {
                 this, &Yolo::eventResponse);
         connect(m_board, &YoloBoard::error,
                 this, &Yolo::setError);
+        // Wire up already-set clients
+        if (m_blockchain) m_board->setBlockchainClient(m_blockchain);
+        if (m_kv)         m_board->setKvClient(m_kv);
+        if (m_storage)    m_board->setStorageClient(m_storage);
     }
 #endif
 }
@@ -200,5 +204,34 @@ QString Yolo::submitPost(const QString& title, const QString& content) {
     Q_UNUSED(content)
     setError("Board support not available in this build");
     return {};
+#endif
+}
+
+// ── Client wiring ───────────────────────────────────────────────────────────
+
+void Yolo::setBlockchainClient(LogosAPIClient* client) {
+#ifdef YOLO_HAS_BOARD
+    m_blockchain = client;
+    if (m_board) m_board->setBlockchainClient(client);
+#else
+    Q_UNUSED(client)
+#endif
+}
+
+void Yolo::setKvClient(LogosAPIClient* client) {
+#ifdef YOLO_HAS_BOARD
+    m_kv = client;
+    if (m_board) m_board->setKvClient(client);
+#else
+    Q_UNUSED(client)
+#endif
+}
+
+void Yolo::setStorageClient(LogosAPIClient* client) {
+#ifdef YOLO_HAS_BOARD
+    m_storage = client;
+    if (m_board) m_board->setStorageClient(client);
+#else
+    Q_UNUSED(client)
 #endif
 }
