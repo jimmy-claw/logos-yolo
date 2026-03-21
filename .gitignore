@@ -1,1 +1,10 @@
-build-ui/
+build/
+build-*/
+build-test/
+build-tests/
+result
+*.o
+*.so
+*.dylib
+*.dll
+.cache/

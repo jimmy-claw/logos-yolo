@@ -1,15 +1,13 @@
 {
-  "author": "Jimmy Claw",
-  "category": "misc",
-  "dependencies": [],
-  "description": "YOLO - Your Own Local Opinion",
-  "icon": ":/icons/yolo.png",
-  "main": {
-    "linux-amd64": "yolo_ui.so",
-    "linux-amd64-dev": "yolo_ui.so"
-  },
-  "manifestVersion": "0.1.0",
-  "name": "yolo_ui",
-  "type": "ui",
-  "version": "1.0.0"
+    "name": "yolo_ui",
+    "version": "0.1.0",
+    "description": "YOLO community board UI plugin",
+    "author": "jimmy-claw",
+    "type": "ui",
+    "category": "social",
+    "dependencies": ["yolo"],
+    "main": {
+        "linux-amd64": "yolo_ui.so"
+    },
+    "manifestVersion": "0.1.0"
 }

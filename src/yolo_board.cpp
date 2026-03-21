@@ -1,99 +1,324 @@
 #include "yolo_board.h"
-#include <logos_api_client.h>
-#include <QDateTime>
-#include <QJsonArray>
+
+#include <federated_channel.h>
+#include <content_store.h>
+#include <channel_indexer.h>
+#include <sync_types.h>
+
 #include <QJsonDocument>
-#include <QJsonObject>
-#include <QUuid>
+#include <QJsonArray>
 #include <QDebug>
+#include <algorithm>
 
-YoloBoard::YoloBoard(QObject *parent) : QObject(parent) {}
+// ── YoloPost ────────────────────────────────────────────────────────────────
 
-void YoloBoard::initWithClient(LogosAPIClient* client) {
-    m_client = client;
-    qDebug() << "YoloBoard: sync_module client:" << (client ? "connected" : "null");
-}
-
-QString YoloBoard::makeBoardPrefix(const QString &creatorPubkey) {
-    return QStringLiteral("YOLO:%1:%2")
-        .arg(creatorPubkey.left(8))
-        .arg(QDateTime::currentSecsSinceEpoch());
-}
-
-QString YoloBoard::createBoard(const QString &name, const QString &creatorPubkey) {
-    const QString prefix = makeBoardPrefix(creatorPubkey);
-    QJsonObject result;
-    result["success"] = true;
-    result["prefix"] = prefix;
-    result["name"] = name;
-    m_currentPrefix = prefix;
-
-    if (m_client) {
-        m_client->invokeRemoteMethod("sync_module", "federatedAddAdmin", prefix, creatorPubkey);
-        qDebug() << "YoloBoard: registered board on sync_module:" << prefix;
+QJsonObject YoloPost::toJson() const
+{
+    QJsonObject obj;
+    obj["title"]     = title;
+    obj["content"]   = content;
+    obj["author"]    = author;
+    obj["timestamp"] = timestamp;
+    if (!cid.isEmpty()) {
+        obj["cid"] = cid;
     }
-    emit boardCreated(prefix);
-    return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
+    return obj;
 }
 
-QString YoloBoard::postOpinion(const QString &prefix, const QString &authorPubkey,
-                               const QString &title, const QString &content) {
-    QJsonObject post;
-    post["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    post["author"] = authorPubkey;
-    post["title"] = title;
-    post["content"] = content;
-    post["timestamp"] = QDateTime::currentSecsSinceEpoch();
-    const QByteArray data = QJsonDocument(post).toJson(QJsonDocument::Compact);
+YoloPost YoloPost::fromJson(const QJsonObject& obj, const QString& postId)
+{
+    YoloPost post;
+    post.id        = postId;
+    post.title     = obj["title"].toString();
+    post.content   = obj["content"].toString();
+    post.author    = obj["author"].toString();
+    post.timestamp = obj["timestamp"].toVariant().toLongLong();
+    post.cid       = obj["cid"].toString();
+    return post;
+}
 
-    QJsonObject result;
-    if (m_client) {
-        const QVariant id = m_client->invokeRemoteMethod("sync_module", "federatedInscribe",
-                                                        prefix, QString::fromUtf8(data.toHex()));
-        result["success"] = true;
-        result["inscriptionId"] = id.toString();
-        qDebug() << "YoloBoard: posted, id:" << id.toString();
-    } else {
-        m_allPosts[prefix].append(QString::fromUtf8(data));
-        result["success"] = true;
-        result["inscriptionId"] = post["id"].toString();
-        result["stub"] = true;
+// ── YoloBoard ───────────────────────────────────────────────────────────────
+
+YoloBoard::YoloBoard(QObject* parent)
+    : QObject(parent)
+{
+}
+
+// --- Client wiring ---
+
+void YoloBoard::setBlockchainClient(LogosAPIClient* blockchain)
+{
+    m_blockchain = blockchain;
+    if (m_channel) {
+        m_channel->setBlockchainClient(blockchain);
     }
-    return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
 }
 
-QString YoloBoard::getPosts(const QString &prefix) {
-    QJsonObject result;
-    if (m_client) {
-        const QVariant raw = m_client->invokeRemoteMethod("sync_module", "federatedGetHistory",
-                                                         prefix, QString(), QString("50"));
-        QJsonArray posts;
-        const QJsonDocument doc = QJsonDocument::fromJson(raw.toString().toUtf8());
-        if (doc.isObject()) {
-            for (const QJsonValue &insc : doc.object()["inscriptions"].toArray()) {
-                const QByteArray hex = QByteArray::fromHex(
-                    insc.toObject()["data"].toString().toLatin1());
-                const QJsonDocument pd = QJsonDocument::fromJson(hex);
-                if (pd.isObject()) posts.append(pd.object());
+void YoloBoard::setStorageClient(LogosAPIClient* storage)
+{
+    m_storage = storage;
+    if (m_contentStore) {
+        m_contentStore->setStorageClient(storage);
+    }
+}
+
+void YoloBoard::setKvClient(LogosAPIClient* kv)
+{
+    m_kv = kv;
+    if (m_channel) {
+        m_channel->setKvClient(kv);
+    }
+}
+
+void YoloBoard::setOwnPubkey(const QString& pubkeyHex)
+{
+    m_ownPubkey = pubkeyHex;
+    if (m_channel) {
+        m_channel->setOwnPubkey(pubkeyHex);
+    }
+}
+
+// --- Board management ---
+
+QString YoloBoard::boardPrefix(const QString& name)
+{
+    return QStringLiteral("YOLO:%1").arg(name);
+}
+
+QString YoloBoard::boardName() const
+{
+    return m_boardName;
+}
+
+QString YoloBoard::boardPrefix() const
+{
+    return boardPrefix(m_boardName);
+}
+
+void YoloBoard::createBoard(const QString& name, const QString& description)
+{
+    m_boardName = name;
+    ensureFederatedChannel();
+
+    // Add ourselves as first admin so we can inscribe
+    if (!m_ownPubkey.isEmpty()) {
+        m_channel->addAdmin(m_ownPubkey);
+    }
+
+    // Inscribe board metadata as first post
+    QJsonObject meta;
+    meta["type"]        = QStringLiteral("board_meta");
+    meta["name"]        = name;
+    meta["description"] = description;
+    meta["timestamp"]   = QDateTime::currentMSecsSinceEpoch();
+
+    QByteArray payload = QJsonDocument(meta).toJson(QJsonDocument::Compact);
+    m_channel->inscribe(payload);
+
+    m_channel->follow();
+    emit boardJoined(boardPrefix());
+
+    qDebug() << "YoloBoard: created board" << name;
+}
+
+void YoloBoard::joinBoard(const QString& boardId)
+{
+    // boardId is the board name (prefix portion after "YOLO:")
+    m_boardName = boardId;
+    ensureFederatedChannel();
+
+    m_channel->follow();
+    emit boardJoined(boardPrefix());
+
+    qDebug() << "YoloBoard: joined board" << boardId;
+}
+
+// --- Posting ---
+
+QByteArray YoloBoard::serializePost(const QString& title, const QString& content,
+                                    const QString& author) const
+{
+    QJsonObject obj;
+    obj["title"]     = title;
+    obj["content"]   = content;
+    obj["author"]    = author;
+    obj["timestamp"] = QDateTime::currentMSecsSinceEpoch();
+    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
+}
+
+QString YoloBoard::createPost(const QString& title, const QString& content,
+                              const QString& author)
+{
+    ensureFederatedChannel();
+
+    if (!m_channel->isAvailable()) {
+        emit error("Board channel not available");
+        return {};
+    }
+
+    // Event 1: Post created
+    emit eventResponse("post.created",
+        QVariantList{"info", QStringLiteral("\xF0\x9F\x93\x9D Post created: %1").arg(title)});
+
+    QString contentForPost = content;
+    QString storedCid;
+
+    // Step 1: Offload large content to ContentStore
+    if (content.toUtf8().size() > CONTENT_STORE_THRESHOLD) {
+        ensureContentStore();
+        if (m_contentStore && m_contentStore->isAvailable()) {
+            // Event 2: Uploading content
+            emit eventResponse("post.uploading",
+                QVariantList{"info", QStringLiteral("\xF0\x9F\x93\xA6 Uploading content to storage...")});
+
+            storedCid = m_contentStore->store(content.toUtf8());
+            if (storedCid.isEmpty()) {
+                emit error("Failed to upload content to storage");
+                return {};
             }
+            // Replace content with CID reference
+            contentForPost = QStringLiteral("cid:%1").arg(storedCid);
+            emit postUploadedToStorage(QString(), storedCid);
+
+            // Event 3: Content uploaded
+            emit eventResponse("post.uploaded",
+                QVariantList{"success", QStringLiteral("\xE2\x9C\x85 Post uploaded to storage with CID: %1").arg(storedCid)});
         }
-        result["success"] = true;
-        result["posts"] = posts;
-    } else {
-        QJsonArray posts;
-        for (const QString &raw : m_allPosts.value(prefix)) {
-            const QJsonDocument pd = QJsonDocument::fromJson(raw.toUtf8());
-            if (pd.isObject()) posts.append(pd.object());
-        }
-        result["success"] = true;
-        result["posts"] = posts;
     }
-    emit postsLoaded();
-    return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
+
+    // Step 2: Serialize post JSON
+    QByteArray postJson = serializePost(title, contentForPost, author);
+    if (!storedCid.isEmpty()) {
+        // Embed CID in the post JSON
+        QJsonObject obj = QJsonDocument::fromJson(postJson).object();
+        obj["cid"] = storedCid;
+        postJson = QJsonDocument(obj).toJson(QJsonDocument::Compact);
+    }
+
+    // Event 4: Inscribing post
+    emit eventResponse("post.inscribing",
+        QVariantList{"info", QStringLiteral("\xE2\x9B\x93\xEF\xB8\x8F Inscribing post on-chain...")});
+
+    // Step 3: Inscribe on FederatedChannel
+    QString inscriptionId = m_channel->inscribe(postJson);
+    if (inscriptionId.isEmpty()) {
+        emit error("Failed to inscribe post on channel");
+        return {};
+    }
+
+    // Update storage signal with actual post ID
+    if (!storedCid.isEmpty()) {
+        emit postUploadedToStorage(inscriptionId, storedCid);
+    }
+
+    emit postInscribed(inscriptionId, boardPrefix());
+
+    // Event 5: Post inscribed
+    emit eventResponse("post.inscribed",
+        QVariantList{"success", QStringLiteral("\xE2\x9C\x85 Post inscribed on channel %1 with ID: %2").arg(boardPrefix(), inscriptionId)});
+
+    emit postPublished(inscriptionId, title);
+
+    // Event 6: Post published
+    emit eventResponse("post.published",
+        QVariantList{"success", QStringLiteral("\xF0\x9F\x93\xA2 Post published!")});
+
+    qDebug() << "YoloBoard: post created" << inscriptionId << title;
+    return inscriptionId;
 }
 
-void YoloBoard::followBoard(const QString &prefix) {
-    if (m_client) {
-        m_client->invokeRemoteMethod("sync_module", "federatedFollow", prefix);
+QList<YoloPost> YoloBoard::getPosts(int limit)
+{
+    ensureFederatedChannel();
+
+    if (!m_channel->isAvailable()) {
+        emit error("Board channel not available");
+        return {};
     }
+
+    IndexerPage page = m_channel->history();
+    QList<YoloPost> posts;
+
+    for (const Inscription& insc : page.inscriptions) {
+        QJsonDocument doc = QJsonDocument::fromJson(insc.data);
+        if (doc.isNull()) continue;
+
+        QJsonObject obj = doc.object();
+
+        // Skip board metadata entries
+        if (obj["type"].toString() == "board_meta") continue;
+
+        YoloPost post = YoloPost::fromJson(obj, insc.inscriptionId);
+        post.channelId = insc.channelId;
+        posts.append(post);
+
+        if (posts.size() >= limit) break;
+    }
+
+    // Newest first
+    std::reverse(posts.begin(), posts.end());
+    return posts;
+}
+
+// --- Storage integration ---
+
+QString YoloBoard::uploadContent(const QByteArray& data)
+{
+    ensureContentStore();
+    if (!m_contentStore || !m_contentStore->isAvailable()) {
+        emit error("Content store not available");
+        return {};
+    }
+    return m_contentStore->store(data);
+}
+
+QByteArray YoloBoard::downloadContent(const QString& cid)
+{
+    ensureContentStore();
+    if (!m_contentStore || !m_contentStore->isAvailable()) {
+        emit error("Content store not available");
+        return {};
+    }
+    return m_contentStore->fetch(cid);
+}
+
+// --- Discovery ---
+
+QString YoloBoard::discoverBoards()
+{
+    ensureIndexer();
+    if (!m_indexer) {
+        emit error("Indexer not available");
+        return {};
+    }
+    return m_indexer->discoverChannels("YOLO");
+}
+
+// --- Private helpers ---
+
+void YoloBoard::ensureFederatedChannel()
+{
+    if (m_channel) return;
+
+    m_channel = new FederatedChannel(boardPrefix(), this);
+    if (m_blockchain) m_channel->setBlockchainClient(m_blockchain);
+    if (m_kv)         m_channel->setKvClient(m_kv);
+    if (!m_ownPubkey.isEmpty()) m_channel->setOwnPubkey(m_ownPubkey);
+}
+
+void YoloBoard::ensureContentStore()
+{
+    if (m_contentStore) return;
+
+    m_contentStore = new ContentStore(this);
+    if (m_storage) m_contentStore->setStorageClient(m_storage);
+}
+
+void YoloBoard::ensureIndexer()
+{
+    if (m_indexer) return;
+
+    m_indexer = new ChannelIndexer(this);
+    if (m_blockchain) m_indexer->setBlockchainClient(m_blockchain);
+    if (m_kv)         m_indexer->setKvClient(m_kv);
 }

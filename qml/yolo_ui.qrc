@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/yolo">
+        <file>MainView.qml</file>
+        <file>BoardList.qml</file>
+        <file>BoardView.qml</file>
+        <file>CreatePost.qml</file>
+        <file>EventLog.qml</file>
+    </qresource>
+</RCC>
