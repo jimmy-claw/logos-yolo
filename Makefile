@@ -20,7 +20,8 @@ NIX_QT_PREFIX  ?= $(NIX_QTBASE);$(NIX_QTDECL);$(NIX_QTREMOBJ)
 
 .PHONY: all build clean setup-nix-merged \
         build-module install-module \
-        build-ui-plugin install install-all
+        build-ui-plugin install install-all \
+        bundle-lgx bundle-lgx-nix
 
 # ── Build (default — plugin mode) ────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ build:
 	cd $(BUILD_DIR) && cmake .. $(CMAKE_FLAGS) && make -j$$(nproc)
 
 clean:
-	rm -rf $(BUILD_DIR) build-module build-ui-plugin
+	rm -rf $(BUILD_DIR) build-module build-ui-plugin dist
 
 # ── Nix merged SDK dirs ──────────────────────────────────────────────────────
 
@@ -97,3 +98,31 @@ install-all: install install-module
 	@echo ""
 	@echo "All installed! Run logos-app:"
 	@echo "  cd ~/logos-workspace && nix run .#logos-app-poc"
+
+# ── .lgx Bundle (for Basecamp) ─────────────────────────────────────────────
+
+DIST_DIR    ?= dist
+LGX_VERSION ?= 0.1.0
+
+## Build .lgx bundle — builds both plugins, packages with metadata + QML
+bundle-lgx: build-module build-ui-plugin
+	@echo "=== Assembling .lgx bundle ==="
+	rm -rf $(DIST_DIR)/yolo
+	mkdir -p $(DIST_DIR)/yolo/qml
+	cp $(BUILD_MODULE)/yolo_plugin.so      $(DIST_DIR)/yolo/yolo_plugin.so
+	cp $(BUILD_UI_PLUGIN)/libyolo_ui.so    $(DIST_DIR)/yolo/yolo_ui.so
+	cp metadata.json                        $(DIST_DIR)/yolo/metadata.json
+	cp ui_metadata.json                     $(DIST_DIR)/yolo/ui_metadata.json
+	cp qml/*.qml                            $(DIST_DIR)/yolo/qml/
+	@printf '{\n  "name": "yolo",\n  "version": "$(LGX_VERSION)",\n  "description": "YOLO community board",\n  "author": "jimmy-claw",\n  "type": "module",\n  "category": "social",\n  "plugins": {"headless": "yolo_plugin.so", "ui": "yolo_ui.so"},\n  "qml": "qml/",\n  "dependencies": [],\n  "manifestVersion": "0.1.0"\n}\n' > $(DIST_DIR)/yolo/manifest.json
+	cd $(DIST_DIR) && tar czf yolo-$(LGX_VERSION).lgx yolo
+	@echo ""
+	@echo "Bundle ready: $(DIST_DIR)/yolo-$(LGX_VERSION).lgx"
+	@echo "Install:  lgpm install $(DIST_DIR)/yolo-$(LGX_VERSION).lgx"
+
+## Build .lgx bundle via Nix (reproducible)
+bundle-lgx-nix:
+	nix build .#lgx
+	mkdir -p $(DIST_DIR)
+	cp result/yolo.lgx $(DIST_DIR)/yolo-$(LGX_VERSION).lgx
+	@echo "Nix bundle ready: $(DIST_DIR)/yolo-$(LGX_VERSION).lgx"
