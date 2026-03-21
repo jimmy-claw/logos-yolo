@@ -21,7 +21,6 @@ sudo apt install cmake qt6-base-dev qt6-declarative-dev qt6-remoteobjects-dev g+
 git clone https://github.com/jimmy-claw/logos-yolo.git
 git clone -b feature/federated-channel https://github.com/jimmy-claw/logos-pipe.git
 cd logos-yolo
-git checkout jimmy/rebuild-from-scratch
 
 cmake -B build -DBUILD_TESTS=ON -DLOGOS_PIPE_ROOT=../logos-pipe
 cmake --build build -j$(nproc)
@@ -73,7 +72,7 @@ There is no automated formatter yet. Follow these conventions:
 
 ## Adding a feature
 
-1. **Create a branch** off `jimmy/rebuild-from-scratch`.
+1. **Create a branch** off `master`.
 2. **Write tests first** in `tests/` using the Qt6 Test framework. Reference `tests/test_yolo_board.cpp` for examples.
 3. **Implement** in `src/`. Key integration points:
    - `FederatedChannel` — publish/subscribe over logos-pipe (`logos-pipe/src/federated_channel.h`)
@@ -86,4 +85,4 @@ There is no automated formatter yet. Follow these conventions:
    ctest --output-on-failure --test-dir build
    nix build .
    ```
-5. **Open a PR** against `jimmy/rebuild-from-scratch` using the PR template.
+5. **Open a PR** against `master` using the PR template.

@@ -113,14 +113,12 @@ cmake --build build-module --target yolo_plugin -j$(nproc)
 ### Nix Build
 
 ```bash
-# Headless module
-nix build --override-input logos-pipe-src ./path/to/logos-pipe -L
+nix build .              # Headless module
+nix build .#ui-plugin    # UI plugin
+nix build .#lgx          # .lgx bundle (headless + UI + QML)
 
-# UI plugin
-nix build .#ui-plugin --override-input logos-pipe-src ./path/to/logos-pipe -L
-
-# .lgx bundle (headless + UI + QML)
-nix build .#lgx --override-input logos-pipe-src ./path/to/logos-pipe -L
+# To use a local logos-pipe checkout instead of the GitHub default:
+# nix build --override-input logos-pipe-src ./path/to/logos-pipe -L
 ```
 
 ### Load in Basecamp / logos-app
