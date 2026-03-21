@@ -10,6 +10,9 @@ find_package(Qt6 REQUIRED COMPONENTS Core Qml)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# ── logos-pipe (required for YoloBoard) ──────────────────────────────────────
+set(LOGOS_PIPE_ROOT "" CACHE PATH "Path to logos-pipe source tree")
+
 # ── Logos SDK + liblogos (optional — only needed for Logos Core integration) ──
 set(LOGOS_CPP_SDK_ROOT "" CACHE PATH "Path to logos-cpp-sdk install")
 set(LOGOS_LIBLOGOS_ROOT "" CACHE PATH "Path to logos-liblogos install")
@@ -157,4 +160,43 @@ if(BUILD_UI_PLUGIN)
     install(TARGETS ${UI_TARGET}
         LIBRARY DESTINATION lib
     )
+endif()
+
+# ── Tests (no SDK required — uses stubs) ─────────────────────────────────────
+option(BUILD_TESTS "Build YoloBoard unit tests" OFF)
+
+if(BUILD_TESTS)
+    enable_testing()
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+
+    if("${LOGOS_PIPE_ROOT}" STREQUAL "")
+        message(FATAL_ERROR "BUILD_TESTS requires -DLOGOS_PIPE_ROOT=<path to logos-pipe>")
+    endif()
+
+    # logos-pipe sources needed by YoloBoard (compiled directly — no separate lib)
+    set(LOGOS_PIPE_SOURCES
+        "${LOGOS_PIPE_ROOT}/src/federated_channel.cpp"
+        "${LOGOS_PIPE_ROOT}/src/channel_sync.cpp"
+        "${LOGOS_PIPE_ROOT}/src/channel_indexer.cpp"
+        "${LOGOS_PIPE_ROOT}/src/content_store.cpp"
+    )
+
+    # ── test_yolo_board ──
+    add_executable(test_yolo_board
+        tests/test_yolo_board.cpp
+        src/yolo_board.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_yolo_board PRIVATE
+        src
+        tests                              # logos_api_client.h stub
+        "${LOGOS_PIPE_ROOT}/src"            # logos-pipe headers
+    )
+
+    target_link_libraries(test_yolo_board PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    add_test(NAME test_yolo_board COMMAND test_yolo_board)
 endif()
