@@ -1,5 +1,8 @@
 # YOLO — Censorship-Resistant Community Board
 
+[![CI](https://github.com/jimmy-claw/logos-yolo/actions/workflows/ci.yml/badge.svg)](https://github.com/jimmy-claw/logos-yolo/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/jimmy-claw/logos-yolo?label=latest%20release)](https://github.com/jimmy-claw/logos-yolo/releases/latest)
+
 YOLO is a community board module for the [Logos](https://logos.co) network. It lets anyone create boards, post content, and read from multiple writers — all backed by on-chain inscriptions and content-addressed storage. Posts are published through federated channels where each admin writes to their own blockchain channel, and readers see a merged chronological feed. There is no central server, no moderation API, and no single point of failure. Built as a demo for the ETHCluj workshop.
 
 ## Architecture
