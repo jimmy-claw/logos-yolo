@@ -156,6 +156,10 @@ QString YoloBoard::createPost(const QString& title, const QString& content,
         return {};
     }
 
+    // Event 1: Post created
+    emit eventResponse("post.created",
+        QVariantList{"info", QStringLiteral("\xF0\x9F\x93\x9D Post created: %1").arg(title)});
+
     QString contentForPost = content;
     QString storedCid;
 
@@ -163,6 +167,10 @@ QString YoloBoard::createPost(const QString& title, const QString& content,
     if (content.toUtf8().size() > CONTENT_STORE_THRESHOLD) {
         ensureContentStore();
         if (m_contentStore && m_contentStore->isAvailable()) {
+            // Event 2: Uploading content
+            emit eventResponse("post.uploading",
+                QVariantList{"info", QStringLiteral("\xF0\x9F\x93\xA6 Uploading content to storage...")});
+
             storedCid = m_contentStore->store(content.toUtf8());
             if (storedCid.isEmpty()) {
                 emit error("Failed to upload content to storage");
@@ -171,6 +179,10 @@ QString YoloBoard::createPost(const QString& title, const QString& content,
             // Replace content with CID reference
             contentForPost = QStringLiteral("cid:%1").arg(storedCid);
             emit postUploadedToStorage(QString(), storedCid);
+
+            // Event 3: Content uploaded
+            emit eventResponse("post.uploaded",
+                QVariantList{"success", QStringLiteral("\xE2\x9C\x85 Post uploaded to storage with CID: %1").arg(storedCid)});
         }
     }
 
@@ -182,6 +194,10 @@ QString YoloBoard::createPost(const QString& title, const QString& content,
         obj["cid"] = storedCid;
         postJson = QJsonDocument(obj).toJson(QJsonDocument::Compact);
     }
+
+    // Event 4: Inscribing post
+    emit eventResponse("post.inscribing",
+        QVariantList{"info", QStringLiteral("\xE2\x9B\x93\xEF\xB8\x8F Inscribing post on-chain...")});
 
     // Step 3: Inscribe on FederatedChannel
     QString inscriptionId = m_channel->inscribe(postJson);
@@ -196,7 +212,16 @@ QString YoloBoard::createPost(const QString& title, const QString& content,
     }
 
     emit postInscribed(inscriptionId, boardPrefix());
+
+    // Event 5: Post inscribed
+    emit eventResponse("post.inscribed",
+        QVariantList{"success", QStringLiteral("\xE2\x9C\x85 Post inscribed on channel %1 with ID: %2").arg(boardPrefix(), inscriptionId)});
+
     emit postPublished(inscriptionId, title);
+
+    // Event 6: Post published
+    emit eventResponse("post.published",
+        QVariantList{"success", QStringLiteral("\xF0\x9F\x93\xA2 Post published!")});
 
     qDebug() << "YoloBoard: post created" << inscriptionId << title;
     return inscriptionId;

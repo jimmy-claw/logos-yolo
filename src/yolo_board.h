@@ -6,6 +6,7 @@
 #include <QByteArray>
 #include <QJsonObject>
 #include <QDateTime>
+#include <QVariantList>
 
 class LogosAPIClient;
 
@@ -95,6 +96,12 @@ signals:
     void postUploadedToStorage(const QString& postId, const QString& cid);
     void boardJoined(const QString& boardId);
     void error(const QString& message);
+
+    // Structured lifecycle event for UI/CLI consumption.
+    // eventName: "post.created", "post.uploading", "post.uploaded",
+    //            "post.inscribing", "post.inscribed", "post.published"
+    // args: [type (info/success/error), message]
+    void eventResponse(const QString& eventName, const QVariantList& args);
 
 private:
     void ensureFederatedChannel();

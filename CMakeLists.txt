@@ -237,4 +237,24 @@ if(BUILD_TESTS)
     )
 
     add_test(NAME test_yolo_federation COMMAND test_yolo_federation)
+
+    # ── test_yolo_event_lifecycle ──
+    add_executable(test_yolo_event_lifecycle
+        tests/test_yolo_event_lifecycle.cpp
+        src/yolo_board.cpp
+        src/yolo.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_yolo_event_lifecycle PRIVATE
+        src
+        tests
+        "${LOGOS_PIPE_ROOT}/src"
+    )
+
+    target_link_libraries(test_yolo_event_lifecycle PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    add_test(NAME test_yolo_event_lifecycle COMMAND test_yolo_event_lifecycle)
 endif()

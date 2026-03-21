@@ -1,4 +1,5 @@
 #include "yolo.h"
+#include "yolo_board.h"
 
 #include <QDebug>
 
@@ -19,4 +20,10 @@ void Yolo::initLogos(LogosAPI *logosAPIInstance) {
 #else
     Q_UNUSED(logosAPIInstance)
 #endif
+}
+
+void Yolo::watchBoard(YoloBoard *board) {
+    if (!board) return;
+    connect(board, &YoloBoard::eventResponse,
+            this, &Yolo::eventResponse);
 }
