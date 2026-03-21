@@ -438,6 +438,19 @@
         "type": "github"
       }
     },
+    "logos-pipe-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774079387,
+        "narHash": "sha256-KcWuoZGRiZsYyUYvb2ZnF/pInu8SgHHQ0wvK/BJ3BDA=",
+        "path": "/home/jimmy/logos-pipe",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/jimmy/logos-pipe",
+        "type": "path"
+      }
+    },
     "nix-bundle-appimage": {
       "inputs": {
         "logos-nix": "logos-nix_7",
@@ -707,6 +720,7 @@
         "logos-cpp-sdk": "logos-cpp-sdk",
         "logos-liblogos": "logos-liblogos",
         "logos-module-builder": "logos-module-builder",
+        "logos-pipe-src": "logos-pipe-src",
         "nixpkgs": [
           "logos-module-builder",
           "nixpkgs"

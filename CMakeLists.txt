@@ -4,6 +4,22 @@ project(yolo VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ── Module Builder integration (nix build default) ────────────────────────────
+# When built via logos-module-builder, use logos_module() and return early.
+# This produces yolo_plugin.so for logoscore without requiring BUILD_MODULE=ON.
+if(DEFINED ENV{LOGOS_MODULE_BUILDER_ROOT})
+    include($ENV{LOGOS_MODULE_BUILDER_ROOT}/cmake/LogosModule.cmake)
+    logos_module(
+        NAME yolo
+        SOURCES
+            src/yolo_plugin.h
+            src/yolo_plugin.cpp
+            src/yolo.h
+            src/yolo.cpp
+    )
+    return()
+endif()
+
 # ── Qt6 ───────────────────────────────────────────────────────────────────────
 find_package(Qt6 REQUIRED COMPONENTS Core Qml)
 
@@ -274,4 +290,26 @@ if(BUILD_TESTS)
     target_compile_definitions(test_yolo_event_lifecycle PRIVATE YOLO_HAS_BOARD)
 
     add_test(NAME test_yolo_event_lifecycle COMMAND test_yolo_event_lifecycle)
+
+    # ── test_integration (full flow: board → post → events → verify) ──
+    add_executable(test_integration
+        tests/test_integration.cpp
+        src/yolo_board.cpp
+        src/yolo.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_integration PRIVATE
+        src
+        tests
+        "${LOGOS_PIPE_ROOT}/src"
+    )
+
+    target_link_libraries(test_integration PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    target_compile_definitions(test_integration PRIVATE YOLO_HAS_BOARD)
+
+    add_test(NAME test_integration COMMAND test_integration)
 endif()

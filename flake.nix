@@ -13,9 +13,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.logos-cpp-sdk.follows = "logos-cpp-sdk";
     };
+    logos-pipe-src = {
+      url = "path:/home/jimmy/logos-pipe";
+      flake = false;
+    };
   };
 
-  outputs = { self, logos-module-builder, nixpkgs, logos-cpp-sdk, logos-liblogos, ... }:
+  outputs = { self, logos-module-builder, nixpkgs, logos-cpp-sdk, logos-liblogos, logos-pipe-src, ... }:
     let
       moduleOutputs = logos-module-builder.lib.mkLogosModule {
         src = ./.;
@@ -32,6 +36,12 @@
       packages = forAllSystems ({ pkgs, logosSdk, logosLiblogos }:
         let
           base = moduleOutputs.packages.${pkgs.system} or {};
+
+          commonCmakeFlags = [
+            "-DLOGOS_CPP_SDK_ROOT=${logosSdk}"
+            "-DLOGOS_LIBLOGOS_ROOT=${logosLiblogos}"
+            "-DLOGOS_PIPE_ROOT=${logos-pipe-src}"
+          ];
 
           ui-plugin = pkgs.stdenv.mkDerivation {
             pname = "yolo-ui-plugin";
@@ -51,10 +61,8 @@
               pkgs.qt6.qtremoteobjects
             ];
 
-            cmakeFlags = [
+            cmakeFlags = commonCmakeFlags ++ [
               "-DBUILD_UI_PLUGIN=ON"
-              "-DLOGOS_CPP_SDK_ROOT=${logosSdk}"
-              "-DLOGOS_LIBLOGOS_ROOT=${logosLiblogos}"
             ];
 
             buildPhase = ''
@@ -77,13 +85,39 @@
               platforms = platforms.unix;
             };
           };
+
+          # .lgx bundle: metadata + headless plugin + UI plugin + QML
+          lgx = pkgs.runCommand "yolo.lgx" {} ''
+            mkdir -p $out/yolo
+
+            # Headless module plugin
+            if [ -d "${base.default or base.lib}/lib" ]; then
+              cp ${base.default or base.lib}/lib/yolo_plugin* $out/yolo/ 2>/dev/null || true
+            fi
+
+            # UI plugin
+            cp ${ui-plugin}/lib/libyolo_ui* $out/yolo/ 2>/dev/null || true
+
+            # QML files
+            mkdir -p $out/yolo/qml
+            cp -r ${./qml}/* $out/yolo/qml/
+
+            # Metadata
+            cp ${./metadata.json} $out/yolo/metadata.json
+            cp ${./ui_metadata.json} $out/yolo/ui_metadata.json
+
+            # Create the .lgx archive (tar.gz with .lgx extension)
+            cd $out
+            tar czf $out/yolo.lgx -C $out yolo
+          '';
+
         in
         base // {
           ui = pkgs.runCommand "yolo-ui" {} ''
             mkdir -p $out/qml
             cp -r ${./qml}/* $out/qml/
           '';
-          inherit ui-plugin;
+          inherit ui-plugin lgx;
         }
       );
     };
