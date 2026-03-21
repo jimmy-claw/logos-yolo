@@ -1,1 +1,7 @@
-build-ui/
+build/
+build-*/
+*.o
+*.so
+*.dylib
+*.dll
+.cache/
