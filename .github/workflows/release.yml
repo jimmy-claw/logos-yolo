@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  test:
+    name: Test Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone logos-pipe
+        uses: actions/checkout@v4
+        with:
+          repository: jimmy-claw/logos-pipe
+          ref: feature/federated-channel
+          path: logos-pipe-src
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.7.*"
+          modules: "qtremoteobjects"
+
+      - name: Configure
+        run: cmake -B build -DBUILD_TESTS=ON -DLOGOS_PIPE_ROOT=${{ github.workspace }}/logos-pipe-src
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test
+        run: ctest --output-on-failure --test-dir build
+
+  build-lgx:
+    name: Build .lgx (${{ matrix.arch }})
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64-linux, aarch64-linux]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone logos-pipe
+        uses: actions/checkout@v4
+        with:
+          repository: jimmy-claw/logos-pipe
+          ref: feature/federated-channel
+          path: logos-pipe-src
+
+      - name: Set up QEMU for aarch64
+        if: matrix.arch == 'aarch64-linux'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            extra-platforms = aarch64-linux
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build .lgx bundle
+        run: nix build .#packages.${{ matrix.arch }}.lgx --override-input logos-pipe-src ./logos-pipe-src -L
+
+      - name: Prepare artifact
+        id: prep
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          LGX_NAME="yolo-${VERSION}-${{ matrix.arch }}.lgx"
+          cp result/yolo.lgx "${LGX_NAME}"
+          sha256sum "${LGX_NAME}" > "${LGX_NAME}.sha256"
+          echo "lgx_name=${LGX_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload .lgx artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lgx-${{ matrix.arch }}
+          path: |
+            yolo-*-${{ matrix.arch }}.lgx
+            yolo-*-${{ matrix.arch }}.lgx.sha256
+
+  release:
+    name: Create GitHub Release
+    needs: build-lgx
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Try annotated tag message first
+          TAG_MSG=$(git tag -l --format='%(contents:body)' "${GITHUB_REF_NAME}" 2>/dev/null | head -50 || true)
+
+          if [ -z "$TAG_MSG" ]; then
+            # Fall back to commits since previous tag
+            PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p' || true)
+            if [ -n "$PREV_TAG" ]; then
+              TAG_MSG=$(git log --pretty=format:"- %s" "${PREV_TAG}..${GITHUB_REF_NAME}")
+            else
+              TAG_MSG=$(git log --pretty=format:"- %s" -20 "${GITHUB_REF_NAME}")
+            fi
+          fi
+
+          # Build the release body
+          {
+            echo "body<<RELEASE_EOF"
+            echo "## YOLO Module v${VERSION}"
+            echo ""
+            echo "### Changes"
+            echo "${TAG_MSG}"
+            echo ""
+            echo "### Artifacts"
+            echo ""
+            echo "| File | Architecture | SHA-256 |"
+            echo "|------|-------------|---------|"
+            for lgx in artifacts/yolo-*.lgx; do
+              [ -f "$lgx" ] || continue
+              [[ "$lgx" == *.sha256 ]] && continue
+              name=$(basename "$lgx")
+              arch=$(echo "$name" | sed "s/yolo-[^-]*-\(.*\)\.lgx/\1/")
+              sha=$(cut -d' ' -f1 < "${lgx}.sha256")
+              echo "| \`${name}\` | ${arch} | \`${sha}\` |"
+            done
+            echo ""
+            echo "### Install"
+            echo "\`\`\`bash"
+            echo "lgpm install yolo-${VERSION}-x86_64-linux.lgx"
+            echo "\`\`\`"
+            echo "RELEASE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            artifacts/yolo-*.lgx \
+            artifacts/yolo-*.lgx.sha256 \
+            --title "YOLO Module ${{ github.ref_name }}" \
+            --notes "${{ steps.notes.outputs.body }}"
