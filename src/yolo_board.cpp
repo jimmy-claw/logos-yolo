@@ -46,6 +46,24 @@ YoloBoard::YoloBoard(QObject* parent)
 
 // --- Client wiring ---
 
+void YoloBoard::initLogos(LogosAPI* api) {
+    if (!api) return;
+
+    if (auto* blockchain = api->getClient("blockchain_module")) {
+        setBlockchainClient(blockchain);
+    } else {
+        qWarning() << "YoloBoard: blockchain_module not available";
+    }
+
+    if (auto* kv = api->getClient("kv_module")) {
+        setKvClient(kv);
+    }
+
+    if (auto* storage = api->getClient("storage_module")) {
+        setStorageClient(storage);
+    }
+}
+
 void YoloBoard::setBlockchainClient(LogosAPIClient* blockchain)
 {
     m_blockchain = blockchain;

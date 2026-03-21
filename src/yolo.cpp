@@ -20,9 +20,10 @@ QString Yolo::hello() const {
 }
 
 void Yolo::initLogos(LogosAPI *logosAPIInstance) {
-#ifdef LOGOS_CORE_AVAILABLE
-    Q_UNUSED(logosAPIInstance)
-    qDebug() << "Yolo: initLogos called";
+#ifdef YOLO_HAS_BOARD
+    ensureBoard();
+    if (m_board && logosAPIInstance)
+        m_board->initLogos(logosAPIInstance);
 #else
     Q_UNUSED(logosAPIInstance)
 #endif

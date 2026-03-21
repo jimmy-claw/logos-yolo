@@ -1,6 +1,8 @@
+#include <QObject>
+class LogosAPI;
 #pragma once
 
-#include <QObject>
+
 #include <QString>
 #include <QList>
 #include <QByteArray>
@@ -48,6 +50,7 @@ public:
     explicit YoloBoard(QObject* parent = nullptr);
 
     // === Client Wiring ===
+    void initLogos(LogosAPI* api);
     void setBlockchainClient(LogosAPIClient* blockchain);
     void setStorageClient(LogosAPIClient* storage);
     void setKvClient(LogosAPIClient* kv);
