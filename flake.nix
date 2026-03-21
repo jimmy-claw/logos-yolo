@@ -68,7 +68,7 @@
 
             buildPhase = ''
               runHook preBuild
-              ninja yolo_plugin -j${NIX_BUILD_CORES:-1}
+              ninja yolo_plugin -j''${NIX_BUILD_CORES:-1}
               runHook postBuild
             '';
 
