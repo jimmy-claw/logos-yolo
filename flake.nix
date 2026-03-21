@@ -61,6 +61,7 @@
             ];
 
             cmakeFlags = commonCmakeFlags ++ [
+              "-DBUILD_MODULE=ON"
               "-DBUILD_UI_PLUGIN=OFF"
               "-DBUILD_TESTS=OFF"
               "-GNinja"
