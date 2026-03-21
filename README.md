@@ -60,6 +60,12 @@ sequenceDiagram
     Y-->>Y: emit post.published
 ```
 
+## Screenshot
+
+![YOLO Board UI](docs/screenshots/yolo-board-ui.png)
+
+The board view showing posts from multiple federated writers, with the event log panel displaying pipeline events in real time.
+
 ## Quick Start
 
 ### Prerequisites
