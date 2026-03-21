@@ -229,6 +229,8 @@ if(BUILD_TESTS)
         Qt6::Core Qt6::Test
     )
 
+    target_compile_definitions(test_yolo_board PRIVATE YOLO_TEST_BUILD)
+
     add_test(NAME test_yolo_board COMMAND test_yolo_board)
 
     # ── test_yolo_events ──
@@ -248,6 +250,8 @@ if(BUILD_TESTS)
         Qt6::Core Qt6::Test
     )
 
+    target_compile_definitions(test_yolo_events PRIVATE YOLO_TEST_BUILD)
+
     add_test(NAME test_yolo_events COMMAND test_yolo_events)
 
     # ── test_yolo_federation ──
@@ -266,6 +270,8 @@ if(BUILD_TESTS)
     target_link_libraries(test_yolo_federation PRIVATE
         Qt6::Core Qt6::Test
     )
+
+    target_compile_definitions(test_yolo_federation PRIVATE YOLO_TEST_BUILD)
 
     add_test(NAME test_yolo_federation COMMAND test_yolo_federation)
 
@@ -287,7 +293,7 @@ if(BUILD_TESTS)
         Qt6::Core Qt6::Test
     )
 
-    target_compile_definitions(test_yolo_event_lifecycle PRIVATE YOLO_HAS_BOARD)
+    target_compile_definitions(test_yolo_event_lifecycle PRIVATE YOLO_HAS_BOARD YOLO_TEST_BUILD)
 
     add_test(NAME test_yolo_event_lifecycle COMMAND test_yolo_event_lifecycle)
 
@@ -309,7 +315,7 @@ if(BUILD_TESTS)
         Qt6::Core Qt6::Test
     )
 
-    target_compile_definitions(test_integration PRIVATE YOLO_HAS_BOARD)
+    target_compile_definitions(test_integration PRIVATE YOLO_HAS_BOARD YOLO_TEST_BUILD)
 
     add_test(NAME test_integration COMMAND test_integration)
 
@@ -329,6 +335,8 @@ if(BUILD_TESTS)
     target_link_libraries(test_verify_onchain PRIVATE
         Qt6::Core Qt6::Test
     )
+
+    target_compile_definitions(test_verify_onchain PRIVATE YOLO_TEST_BUILD)
 
     add_test(NAME test_verify_onchain COMMAND test_verify_onchain)
 endif()

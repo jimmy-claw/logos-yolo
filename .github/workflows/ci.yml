@@ -31,6 +31,25 @@ jobs:
           version: "6.7.*"
           modules: "qtremoteobjects"
 
+      - name: Guard — no test stubs in production code
+        run: |
+          # Fail if any src/ file includes the test stub header
+          if grep -rn 'logos_api_client\.h' src/; then
+            echo "::error::Test stub logos_api_client.h is included in production source files"
+            exit 1
+          fi
+          # Fail if any src/ file defines mock/stub/fake/dummy classes
+          if grep -rn 'class.*Mock\|class.*Stub\|class.*Fake\|class.*Recording.*:\|class.*Dummy' src/; then
+            echo "::error::Mock/Stub/Fake/Dummy class found in production source files"
+            exit 1
+          fi
+          # Fail if YOLO_TEST_BUILD is used in production CMake targets
+          if grep -n 'YOLO_TEST_BUILD' CMakeLists.txt | grep -v 'BUILD_TESTS\|^#\|test_'; then
+            echo "::error::YOLO_TEST_BUILD defined outside of test targets"
+            exit 1
+          fi
+          echo "No test stubs found in production code"
+
       - name: Configure
         run: cmake -B build -DBUILD_TESTS=ON -DLOGOS_PIPE_ROOT=${{ github.workspace }}/logos-pipe-src
 
