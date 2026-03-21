@@ -1,5 +1,10 @@
 #include "yolo_board.h"
 
+#ifdef LOGOS_CORE_AVAILABLE
+#include <interface.h>
+#include <logos_api_client.h>
+#endif
+
 #include <federated_channel.h>
 #include <content_store.h>
 #include <channel_indexer.h>
@@ -46,6 +51,7 @@ YoloBoard::YoloBoard(QObject* parent)
 
 // --- Client wiring ---
 
+#ifdef LOGOS_CORE_AVAILABLE
 void YoloBoard::initLogos(LogosAPI* api) {
     if (!api) return;
 
@@ -63,6 +69,7 @@ void YoloBoard::initLogos(LogosAPI* api) {
         setStorageClient(storage);
     }
 }
+#endif
 
 void YoloBoard::setBlockchainClient(LogosAPIClient* blockchain)
 {

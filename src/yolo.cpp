@@ -20,7 +20,7 @@ QString Yolo::hello() const {
 }
 
 void Yolo::initLogos(LogosAPI *logosAPIInstance) {
-#ifdef YOLO_HAS_BOARD
+#if defined(YOLO_HAS_BOARD) && defined(LOGOS_CORE_AVAILABLE)
     ensureBoard();
     if (m_board && logosAPIInstance)
         m_board->initLogos(logosAPIInstance);

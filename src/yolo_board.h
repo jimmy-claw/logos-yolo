@@ -50,7 +50,9 @@ public:
     explicit YoloBoard(QObject* parent = nullptr);
 
     // === Client Wiring ===
+#ifdef LOGOS_CORE_AVAILABLE
     void initLogos(LogosAPI* api);
+#endif
     void setBlockchainClient(LogosAPIClient* blockchain);
     void setStorageClient(LogosAPIClient* storage);
     void setKvClient(LogosAPIClient* kv);
