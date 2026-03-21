@@ -2,8 +2,8 @@
   description = "YOLO community board — Logos UI plugin";
 
   inputs = {
-    logos-module-builder.url = "github:logos-co/logos-module-builder";
-    nixpkgs.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
+    logos-module-builder.url = "github:logos-co/logos-module-builder/4fa6816bc065f974169150448c066ef4047a2e43";
+    nixpkgs.follows = "logos-module-builder/nixpkgs";
     logos-cpp-sdk = {
       url = "github:logos-co/logos-cpp-sdk";
       inputs.nixpkgs.follows = "nixpkgs";
