@@ -312,4 +312,23 @@ if(BUILD_TESTS)
     target_compile_definitions(test_integration PRIVATE YOLO_HAS_BOARD)
 
     add_test(NAME test_integration COMMAND test_integration)
+
+    # ── test_verify_onchain (on-chain inscription verification) ──
+    add_executable(test_verify_onchain
+        tests/test_verify_onchain.cpp
+        src/yolo_board.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_verify_onchain PRIVATE
+        src
+        tests
+        "${LOGOS_PIPE_ROOT}/src"
+    )
+
+    target_link_libraries(test_verify_onchain PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    add_test(NAME test_verify_onchain COMMAND test_verify_onchain)
 endif()
