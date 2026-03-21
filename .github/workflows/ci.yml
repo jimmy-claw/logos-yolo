@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (CMake)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone logos-pipe
+        uses: actions/checkout@v4
+        with:
+          repository: jimmy-claw/logos-pipe
+          ref: feature/federated-channel
+          path: logos-pipe-src
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.7.*"
+          modules: "qtremoteobjects"
+
+      - name: Configure
+        run: cmake -B build -DBUILD_TESTS=ON -DLOGOS_PIPE_ROOT=${{ github.workspace }}/logos-pipe-src
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test
+        run: ctest --output-on-failure --test-dir build
+
+  nix-build:
+    name: Nix Build (headless module)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone logos-pipe
+        uses: actions/checkout@v4
+        with:
+          repository: jimmy-claw/logos-pipe
+          ref: feature/federated-channel
+          path: logos-pipe-src
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build headless module
+        run: nix build --override-input logos-pipe-src ./logos-pipe-src -L
+
+  nix-build-ui:
+    name: Nix Build (UI plugin)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone logos-pipe
+        uses: actions/checkout@v4
+        with:
+          repository: jimmy-claw/logos-pipe
+          ref: feature/federated-channel
+          path: logos-pipe-src
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build UI plugin
+        run: nix build .#ui-plugin --override-input logos-pipe-src ./logos-pipe-src -L
