@@ -95,6 +95,20 @@ if(BUILD_MODULE)
         YOLO_WRAPPER
     )
 
+    if(NOT "${LOGOS_PIPE_ROOT}" STREQUAL "")
+        target_sources(yolo_plugin PRIVATE
+            src/yolo_board.cpp
+            "${LOGOS_PIPE_ROOT}/src/federated_channel.cpp"
+            "${LOGOS_PIPE_ROOT}/src/channel_sync.cpp"
+            "${LOGOS_PIPE_ROOT}/src/channel_indexer.cpp"
+            "${LOGOS_PIPE_ROOT}/src/content_store.cpp"
+        )
+        target_include_directories(yolo_plugin PRIVATE
+            "${LOGOS_PIPE_ROOT}/src"
+        )
+        target_compile_definitions(yolo_plugin PRIVATE YOLO_HAS_BOARD)
+    endif()
+
     if(APPLE)
         set_target_properties(yolo_plugin PROPERTIES
             BUILD_RPATH   "@loader_path"
