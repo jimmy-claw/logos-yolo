@@ -199,4 +199,42 @@ if(BUILD_TESTS)
     )
 
     add_test(NAME test_yolo_board COMMAND test_yolo_board)
+
+    # ── test_yolo_events ──
+    add_executable(test_yolo_events
+        tests/test_yolo_events.cpp
+        src/yolo_board.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_yolo_events PRIVATE
+        src
+        tests
+        "${LOGOS_PIPE_ROOT}/src"
+    )
+
+    target_link_libraries(test_yolo_events PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    add_test(NAME test_yolo_events COMMAND test_yolo_events)
+
+    # ── test_yolo_federation ──
+    add_executable(test_yolo_federation
+        tests/test_yolo_federation.cpp
+        src/yolo_board.cpp
+        ${LOGOS_PIPE_SOURCES}
+    )
+
+    target_include_directories(test_yolo_federation PRIVATE
+        src
+        tests
+        "${LOGOS_PIPE_ROOT}/src"
+    )
+
+    target_link_libraries(test_yolo_federation PRIVATE
+        Qt6::Core Qt6::Test
+    )
+
+    add_test(NAME test_yolo_federation COMMAND test_yolo_federation)
 endif()

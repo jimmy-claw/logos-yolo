@@ -73,6 +73,9 @@ void YoloBoard::setKvClient(LogosAPIClient* kv)
 void YoloBoard::setOwnPubkey(const QString& pubkeyHex)
 {
     m_ownPubkey = pubkeyHex;
+    if (m_channel) {
+        m_channel->setOwnPubkey(pubkeyHex);
+    }
 }
 
 // --- Board management ---
@@ -275,6 +278,7 @@ void YoloBoard::ensureFederatedChannel()
     m_channel = new FederatedChannel(boardPrefix(), this);
     if (m_blockchain) m_channel->setBlockchainClient(m_blockchain);
     if (m_kv)         m_channel->setKvClient(m_kv);
+    if (!m_ownPubkey.isEmpty()) m_channel->setOwnPubkey(m_ownPubkey);
 }
 
 void YoloBoard::ensureContentStore()
