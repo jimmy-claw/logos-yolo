@@ -134,6 +134,21 @@ if(BUILD_UI_PLUGIN)
         component-interfaces
     )
 
+    # logos-pipe board support (optional — enables full board operations in UI)
+    if(NOT "${LOGOS_PIPE_ROOT}" STREQUAL "")
+        target_sources(${UI_TARGET} PRIVATE
+            src/yolo_board.cpp
+            "${LOGOS_PIPE_ROOT}/src/federated_channel.cpp"
+            "${LOGOS_PIPE_ROOT}/src/channel_sync.cpp"
+            "${LOGOS_PIPE_ROOT}/src/channel_indexer.cpp"
+            "${LOGOS_PIPE_ROOT}/src/content_store.cpp"
+        )
+        target_include_directories(${UI_TARGET} PRIVATE
+            "${LOGOS_PIPE_ROOT}/src"
+        )
+        target_compile_definitions(${UI_TARGET} PRIVATE YOLO_HAS_BOARD)
+    endif()
+
     if(LOGOS_CORE_AVAILABLE)
         find_package(Qt6 REQUIRED COMPONENTS RemoteObjects)
         target_link_libraries(${UI_TARGET} PRIVATE
@@ -255,6 +270,8 @@ if(BUILD_TESTS)
     target_link_libraries(test_yolo_event_lifecycle PRIVATE
         Qt6::Core Qt6::Test
     )
+
+    target_compile_definitions(test_yolo_event_lifecycle PRIVATE YOLO_HAS_BOARD)
 
     add_test(NAME test_yolo_event_lifecycle COMMAND test_yolo_event_lifecycle)
 endif()
