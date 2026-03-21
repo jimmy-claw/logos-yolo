@@ -14,7 +14,7 @@
       inputs.logos-cpp-sdk.follows = "logos-cpp-sdk";
     };
     logos-pipe-src = {
-      url = "path:/home/jimmy/logos-pipe";
+      url = "github:jimmy-claw/logos-pipe/feature/federated-channel";
       flake = false;
     };
   };

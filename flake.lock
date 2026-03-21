@@ -442,13 +442,17 @@
       "flake": false,
       "locked": {
         "lastModified": 1774079387,
-        "narHash": "sha256-KcWuoZGRiZsYyUYvb2ZnF/pInu8SgHHQ0wvK/BJ3BDA=",
-        "path": "/home/jimmy/logos-pipe",
-        "type": "path"
+        "narHash": "sha256-J4a0JKC4vH3Bt3Dbl5ua3jcJZlToCfVmImEF7UkO9gU=",
+        "owner": "jimmy-claw",
+        "repo": "logos-pipe",
+        "rev": "60a30423bf764ecccaa3de09539b60554b2a5ce9",
+        "type": "github"
       },
       "original": {
-        "path": "/home/jimmy/logos-pipe",
-        "type": "path"
+        "owner": "jimmy-claw",
+        "ref": "feature/federated-channel",
+        "repo": "logos-pipe",
+        "type": "github"
       }
     },
     "nix-bundle-appimage": {
